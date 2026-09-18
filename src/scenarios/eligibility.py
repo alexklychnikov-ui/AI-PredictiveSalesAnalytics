@@ -10,6 +10,10 @@ import pandas as pd
 from src.ui.help_texts import PROFIT_HINT_MISSING, PROFIT_HINT_NEED_PRICE
 from src.ui.labels import OPTIONAL_FACTOR_LABELS, label_or_raw
 
+
+def _factor_title(code: str) -> str:
+    return label_or_raw(OPTIONAL_FACTOR_LABELS, code)
+
 KNOWN_FACTORS = (
     "unit_price",
     "discount_pct",
@@ -74,7 +78,7 @@ def assess_factor(frame: pd.DataFrame, factor: str) -> FactorEligibility:
             confidence="низкая",
             reasons=["Фактор отсутствует в данных"],
             missing_hint=(
-                f"В таблице нет колонки «{label_or_raw(OPTIONAL_FACTOR_LABELS, factor)}» "
+                f"В таблице нет колонки «{_factor_title(factor)}» "
                 f"(техническое имя: {factor}). Добавьте её, если хотите крутить этот сценарий."
             ),
         )

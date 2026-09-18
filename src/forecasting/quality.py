@@ -23,14 +23,24 @@ def resolve_quality_status(
         return QUALITY_UNAVAILABLE
     if baseline is None or baseline.metrics.n == 0:
         return QUALITY_UNAVAILABLE
-    if prophet is None or prophet.metrics.n == 0 or prophet.metrics.wape is None:
-        return QUALITY_LOW
 
     base_wape = baseline.metrics.wape
-    prop_wape = prophet.metrics.wape
     if base_wape is None:
         return QUALITY_LOW
 
+    prophet_ok = (
+        prophet is not None
+        and prophet.metrics.n > 0
+        and prophet.metrics.wape is not None
+    )
+    if not prophet_ok:
+        # Prophet недоступен/упал — качество по baseline (как на Windows без пакета).
+        within_target = target_wape is None or base_wape <= target_wape
+        if within_target and plan.history_status != "недостаточно":
+            return QUALITY_ACCEPTABLE
+        return QUALITY_LOW
+
+    prop_wape = prophet.metrics.wape
     better = prop_wape <= base_wape
     within_target = target_wape is None or prop_wape <= target_wape
 

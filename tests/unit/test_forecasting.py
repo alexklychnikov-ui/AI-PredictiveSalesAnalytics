@@ -97,6 +97,21 @@ def test_quality_prophet_better() -> None:
     }
 
 
+def test_quality_baseline_only_when_prophet_missing() -> None:
+    plan = build_seasonality_plan(200, "D", requested_horizon=14)
+    baseline = ModelBacktestResult(
+        model_name="seasonal_naive",
+        metrics=MetricSet(mae=1.0, rmse=1.0, wape=9.0, smape=9.0, n=20),
+    )
+    assert resolve_quality_status(plan=plan, prophet=None, baseline=baseline) == "acceptable"
+    failed = ModelBacktestResult(
+        model_name="prophet",
+        metrics=MetricSet(mae=None, rmse=None, wape=None, smape=None, n=0),
+        error="No module named 'prophet'",
+    )
+    assert resolve_quality_status(plan=plan, prophet=failed, baseline=baseline) == "acceptable"
+
+
 def test_run_forecast_baseline_only_constant() -> None:
     job = run_forecast_job(
         _series(80, constant=True),

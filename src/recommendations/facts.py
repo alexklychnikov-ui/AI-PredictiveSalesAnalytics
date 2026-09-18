@@ -168,10 +168,10 @@ def build_facts_payload(
         "limitations": [
             "Факты — агрегаты; сырые строки и ПДн не передаются.",
             "Корреляция и регрессия факторов не доказывают причинность.",
-            "Stress-test в процентах — не прогноз причинного эффекта.",
+            "Простой сдвиг прогноза на ±% — не оценка влияния конкретного фактора.",
         ],
     }
-    payload = sanitize_tree(payload)
+    payload = sanitize_tree(payload, max_len=500)
     if not isinstance(payload, dict):
         raise TypeError("facts payload must be dict")
     payload["facts_hash"] = facts_hash(payload)

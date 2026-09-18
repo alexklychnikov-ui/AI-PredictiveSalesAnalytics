@@ -36,7 +36,7 @@ def test_stress_percent_scales_total() -> None:
     base = _base_points(10)
     scen = apply_percent_stress(base, pct_change=10.0, name="opt", scenario_type="stress_optimistic")
     assert sum(p.yhat for p in scen.points) == pytest.approx(1100.0)
-    assert "причинного" in scen.disclaimer or "Stress-test" in scen.disclaimer
+    assert "процент" in scen.disclaimer.lower() or "сдвинут" in scen.disclaimer.lower()
 
 
 def test_stress_set_has_three_when_custom() -> None:
@@ -153,5 +153,5 @@ def test_unchanged_factor_skipped_in_job() -> None:
         model_choice="seasonal_naive",
         include_prophet=False,
     )
-    assert any("без изменения" in n for n in job.notes)
+    assert any("не меняли" in n or "пропущен" in n for n in job.notes)
     assert job.factor_scenarios == []

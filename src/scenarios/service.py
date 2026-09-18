@@ -17,6 +17,11 @@ from src.scenarios.eligibility import (
 )
 from src.scenarios.profit import ProfitView, estimate_profit
 from src.scenarios.stress import StressScenario, build_default_stress_set
+from src.ui.labels import OPTIONAL_FACTOR_LABELS, label_or_raw
+
+
+def _factor_title(code: str) -> str:
+    return label_or_raw(OPTIONAL_FACTOR_LABELS, code)
 
 
 @dataclass
@@ -60,7 +65,7 @@ class ScenarioJobResult:
             total = float(sum(p.yhat for p in f.points))
             rows.append(
                 {
-                    "сценарий": f"Фактор {f.factor}={f.scenario_value:g}",
+                    "сценарий": f"{_factor_title(f.factor)}={f.scenario_value:g}",
                     "тип": f.scenario_type,
                     "сумма": total,
                     "Δ к базе": total - self.base_total,
@@ -124,15 +129,20 @@ def run_scenario_job(
     for factor, value in (factor_values or {}).items():
         info = elig_map.get(factor)
         if info is None:
-            notes.append(f"Фактор «{factor}» не найден — пропущен")
+            notes.append(f"Фактор «{_factor_title(factor)}» не найден в данных — пропущен")
             continue
         if not info.eligible:
-            notes.append(f"Фактор «{factor}» недоступен: {'; '.join(info.reasons)}")
+            notes.append(
+                f"Фактор «{_factor_title(factor)}» недоступен: {'; '.join(info.reasons)}"
+            )
             continue
         hist_vals = pd.to_numeric(history[factor], errors="coerce").dropna()
         last_val = float(hist_vals.iloc[-1]) if not hist_vals.empty else None
         if last_val is not None and abs(float(value) - last_val) < 1e-9 * max(1.0, abs(last_val)):
-            notes.append(f"Фактор «{factor}» без изменения относительно последнего значения — пропущен")
+            notes.append(
+                f"«{_factor_title(factor)}» не меняли относительно последнего значения — "
+                "сценарий пропущен (нет изменения)"
+            )
             continue
         result = apply_factor_scenario(
             base_points,
@@ -144,7 +154,7 @@ def run_scenario_job(
         )
         if not result.model.allowed:
             notes.append(
-                f"Эффект «{factor}» не применён: {'; '.join(result.model.reasons)}"
+                f"Эффект «{_factor_title(factor)}» не применён: {'; '.join(result.model.reasons)}"
             )
         if result.range_check.get("warning"):
             notes.append(str(result.range_check["warning"]))

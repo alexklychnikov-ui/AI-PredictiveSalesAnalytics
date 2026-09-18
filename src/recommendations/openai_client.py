@@ -21,7 +21,7 @@ SYSTEM_PROMPT = """Ты аналитик продаж. Тебе дан JSON fact
 4) Не проси сырые данные; не упоминай клиентов/email/телефоны.
 5) Каждая рекомендация: title, action, evidence, expected_effect, confidence (низкая|средняя|высокая), limitation, applicable_period.
 6) Если данных мало — так и скажи в caveats.
-7) Stress-test и корреляции не выдавай за причинность.
+7) Простой сдвиг прогноза (±%) и корреляции не выдавай за причинность.
 Верни только JSON объекта RecommendationsReport.
 """
 

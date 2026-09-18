@@ -50,6 +50,8 @@ class ForecastPointCreate(BaseModel):
 
 
 class ForecastRunCreate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     dataset_id: int
     series_key: str = "total"
     model_name: str
@@ -64,7 +66,7 @@ class ForecastRunCreate(BaseModel):
 
 
 class ForecastRunRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
     id: int
     dataset_id: int

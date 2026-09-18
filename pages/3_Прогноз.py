@@ -14,6 +14,7 @@ from src.export.reports import forecast_points_csv
 from src.forecasting.service import run_forecast_job
 from src.schemas import ForecastPointCreate, ForecastRunCreate
 from src.ui.charts import forecast_figure
+from src.ui.display import POINT_COL_LABELS, rename_records
 from src.ui.feedback import empty_state, error_state, page_guard
 from src.ui.help_texts import METRIC_HELP, PAGE_INTROS, show_glossary
 from src.ui.labels import FREQ_LABELS, MODEL_LABELS, QUALITY_LABELS, label_or_raw
@@ -125,19 +126,20 @@ def main() -> None:
         error_state(payload["unavailable_reason"])
         return
 
-    st.subheader("Метрики backtesting")
+    st.subheader("Насколько модели ошибались на прошлом")
+    st.caption(METRIC_HELP["wape"])
     rows = []
     for m in payload.get("metrics_rows") or []:
         rows.append(
             {
                 "модель": label_or_raw(MODEL_LABELS, m["модель"]),
-                "MAE": _fmt_metric(m.get("mae")),
-                "RMSE": _fmt_metric(m.get("rmse")),
-                "WAPE %": _fmt_metric(m.get("wape")),
-                "sMAPE %": _fmt_metric(m.get("smape")),
-                "фолдов": m.get("folds"),
-                "n": m.get("n"),
-                "ошибка": m.get("error") or "",
+                "средняя ошибка": _fmt_metric(m.get("mae")),
+                "ошибка RMSE": _fmt_metric(m.get("rmse")),
+                "ошибка WAPE, %": _fmt_metric(m.get("wape")),
+                "ошибка sMAPE, %": _fmt_metric(m.get("smape")),
+                "проверок": m.get("folds"),
+                "точек": m.get("n"),
+                "заметка": m.get("error") or "",
             }
         )
     if rows:
@@ -145,9 +147,12 @@ def main() -> None:
         if payload["recommended_model"] == "seasonal_naive" and any(
             r["модель"] == label_or_raw(MODEL_LABELS, "prophet") for r in rows
         ):
-            st.warning("Prophet не лучше baseline по WAPE — это показано явно.")
+            st.warning(
+                "Простая сезонная модель точнее Prophet по WAPE на этих данных — "
+                "это нормально, система выбирает ту, что меньше ошибалась."
+            )
     else:
-        st.caption("Нет метрик backtesting")
+        st.caption("Нет метрик проверки на прошлом")
 
     points = payload.get("points") or []
     st.subheader("График")
@@ -160,7 +165,7 @@ def main() -> None:
         use_container_width=True,
     )
     if points:
-        st.dataframe(points, use_container_width=True)
+        st.dataframe(rename_records(points, POINT_COL_LABELS), use_container_width=True)
         st.download_button(
             "Скачать прогноз CSV",
             data=forecast_points_csv(points),

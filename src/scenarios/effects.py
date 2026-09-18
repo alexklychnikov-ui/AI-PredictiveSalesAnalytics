@@ -67,9 +67,9 @@ class FactorScenarioResult:
 
 
 _DISCLAIMER = (
-    "Оценка эффекта по регрессии y ~ тренд + фактор на истории; "
-    "корреляция ≠ причинность. Применяется только если модель с фактором "
-    "не хуже тренд-only на holdout."
+    "Оценка «что если» по истории продаж: насколько фактор обычно шёл вместе с показателем. "
+    "Это не доказательство причины. Сценарий показывается только если учёт фактора "
+    "не ухудшает прогноз на проверочном отрезке."
 )
 
 
@@ -143,7 +143,8 @@ def fit_factor_effect(
     elif mae_without is not None and mae_with > mae_without * 1.05 + 1e-9:
         allowed = False
         reasons.append(
-            f"Модель с фактором хуже тренд-only на holdout (MAE {mae_with:.3f} > {mae_without:.3f})"
+            f"С фактором ошибка больше, чем без него "
+            f"({mae_with:.3f} > {mae_without:.3f}) — сценарий не применяем"
         )
 
     baseline = float(frame[factor].iloc[-1])

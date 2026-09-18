@@ -17,7 +17,7 @@ from src.schemas import ForecastPointCreate, ForecastRunCreate
 from src.ui.charts import scenarios_compare_figure
 from src.ui.feedback import empty_state, error_state, page_guard, warn_list
 from src.ui.help_texts import METRIC_HELP, PAGE_INTROS, factor_help, show_factor_guide, show_glossary
-from src.ui.labels import FREQ_LABELS, OPTIONAL_FACTOR_LABELS, label_or_raw
+from src.ui.labels import FREQ_LABELS, MODEL_LABELS, OPTIONAL_FACTOR_LABELS, label_or_raw
 from src.ui.session_store import serialize_scenario_job
 
 
@@ -173,7 +173,10 @@ def main() -> None:
         return
 
     st.subheader("Сравнение")
-    st.caption(f"Базовая модель: {payload['base_model']} · горизонт: {payload['horizon']}")
+    st.caption(
+        f"Базовая модель: {label_or_raw(MODEL_LABELS, payload['base_model'])} · "
+        f"горизонт: {payload['horizon']}"
+    )
     comparison = payload.get("comparison") or []
     st.dataframe(comparison, use_container_width=True)
     if comparison:

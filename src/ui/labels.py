@@ -30,7 +30,7 @@ HISTORY_STATUS_LABELS = {
 
 MODEL_LABELS = {
     "prophet": "Prophet",
-    "seasonal_naive": "сезонный naive",
+    "seasonal_naive": "простая сезонная",
     "auto": "авто (лучшая по WAPE)",
     "none": "нет",
 }

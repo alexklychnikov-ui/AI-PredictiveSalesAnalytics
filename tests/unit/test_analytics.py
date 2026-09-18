@@ -63,7 +63,7 @@ def test_correlation_requires_variability() -> None:
     frame = _sample_frame(80)
     corr = compute_correlations(frame, ["promo_flag", "marketing_spend"], max_lag=3)
     assert corr.pairs
-    assert "доказательство" in corr.disclaimer or "причин" in corr.disclaimer
+    assert "вызывал" in corr.disclaimer or "Вместе" in corr.disclaimer
 
 
 def test_constant_driver_skipped() -> None:

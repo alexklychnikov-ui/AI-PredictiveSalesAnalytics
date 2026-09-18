@@ -13,6 +13,7 @@ from src.ui.charts import (
     history_with_rolling_figure,
     profile_bar_figure,
 )
+from src.ui.display import POINT_COL_LABELS, rename_records
 from src.ui.feedback import page_guard
 from src.ui.help_texts import METRIC_HELP, PAGE_INTROS, show_glossary
 from src.ui.labels import FREQ_LABELS, OPTIONAL_FACTOR_LABELS, label_or_raw
@@ -112,12 +113,14 @@ def main() -> None:
         f"годовая: {'—' if s.yearly_strength is None else f'{s.yearly_strength:.2f}'}"
     )
 
-    st.subheader("Аномалии")
+    st.subheader("Аномалии (необычные точки)")
     a = report.anomalies
-    st.write(f"Метод: {a.method.upper()} · найдено: {a.count}")
+    method_label = "отклонение от типичного уровня" if a.method == "mad" else a.method
+    st.write(f"Как ищем: {method_label} · найдено: {a.count}")
     st.plotly_chart(anomalies_figure(filtered, a.points), use_container_width=True)
     if a.points:
-        st.dataframe(a.points, use_container_width=True)
+        st.caption("«Насколько необычно» — чем дальше от нуля по модулю, тем сильнее выброс.")
+        st.dataframe(rename_records(a.points, POINT_COL_LABELS), use_container_width=True)
 
     st.subheader("Связь факторов с продажами")
     corr = report.correlations
