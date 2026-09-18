@@ -1,0 +1,12 @@
+# Локальная разработка: без Caddy, с опубликованными портами.
+services:
+  caddy:
+    profiles: ["disabled"]
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  app:
+    ports:
+      - "8501:8501"

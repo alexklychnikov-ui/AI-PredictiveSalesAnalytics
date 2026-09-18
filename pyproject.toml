@@ -1,0 +1,29 @@
+[project]
+name = "ai-predictive-sales-analytics"
+version = "0.9.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["migrations", ".venv", "venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B008", "UP017", "UP047"]
+
+[tool.ruff.lint.per-file-ignores]
+"pages/*" = ["E402"]
+"tests/*" = ["B018"]
+"scripts/perf_smoke.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+exclude = ["migrations/", "pages/"]
+
+[[tool.mypy.overrides]]
+module = ["prophet.*", "plotly.*", "streamlit.*"]
+ignore_missing_imports = true

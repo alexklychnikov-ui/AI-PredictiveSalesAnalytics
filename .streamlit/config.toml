@@ -1,0 +1,10 @@
+[server]
+address = "0.0.0.0"
+port = 8501
+enableCORS = true
+enableXsrfProtection = true
+headless = true
+corsAllowedOrigins = ["https://salesanalytics.alexklyvibe.ru"]
+
+[browser]
+gatherUsageStats = false
