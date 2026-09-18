@@ -4,6 +4,7 @@
 !.env.example
 !env.example
 .stage1_secrets*
+planToDo.md
 
 # Python
 .venv/
