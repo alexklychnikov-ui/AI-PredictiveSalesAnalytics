@@ -14,14 +14,15 @@ from src.ui.charts import (
     profile_bar_figure,
 )
 from src.ui.feedback import page_guard
-from src.ui.labels import FREQ_LABELS, label_or_raw
+from src.ui.help_texts import METRIC_HELP, PAGE_INTROS, show_glossary
+from src.ui.labels import FREQ_LABELS, OPTIONAL_FACTOR_LABELS, label_or_raw
 
 
 @page_guard
 def main() -> None:
     st.title("Аналитика")
-    st.caption("KPI, тренд, сезонность, аномалии и корреляции без OpenAI")
-
+    st.caption(PAGE_INTROS["analytics"])
+    show_glossary(st)
     with session_scope() as session:
         summaries = DatasetRepository(session).list_summaries()
 
@@ -61,18 +62,20 @@ def main() -> None:
     report = build_analytics_report(filtered, frequency=dataset.frequency)
     kpi = report.kpi
 
-    st.subheader("KPI")
+    st.subheader("Ключевые цифры за период")
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("Сумма", f"{kpi.total:,.2f}")
-    m2.metric("Среднее", f"{kpi.mean:,.2f}")
-    m3.metric("Последнее", f"{kpi.last_value:,.2f}")
+    m1.metric("Сумма", f"{kpi.total:,.2f}", help=METRIC_HELP["kpi_total"])
+    m2.metric("Среднее", f"{kpi.mean:,.2f}", help=METRIC_HELP["kpi_mean"])
+    m3.metric("Последнее", f"{kpi.last_value:,.2f}", help=METRIC_HELP["kpi_last"])
     m4.metric(
         "Изменение к пред. окну",
         "—" if kpi.prev_period_change_pct is None else f"{kpi.prev_period_change_pct:.1f}%",
+        help=METRIC_HELP["prev_change"],
     )
     m5.metric(
-        "Волатильность",
+        "Насколько «скачет» ряд",
         "—" if kpi.volatility is None else f"{kpi.volatility:.2f}",
+        help=METRIC_HELP["volatility"],
     )
     st.caption(
         f"Частота: {label_or_raw(FREQ_LABELS, dataset.frequency)} · точек: {kpi.points} · "
@@ -116,26 +119,31 @@ def main() -> None:
     if a.points:
         st.dataframe(a.points, use_container_width=True)
 
-    st.subheader("Корреляции с факторами")
+    st.subheader("Связь факторов с продажами")
     corr = report.correlations
     st.info(corr.disclaimer)
+    st.caption(
+        "Числа от −1 до +1: ближе к +1 — росли/падали вместе; ближе к −1 — двигались в разные стороны; "
+        "около 0 — явной связи почти нет. Это не доказательство причины."
+    )
     if corr.pairs:
         st.dataframe(
             [
                 {
-                    "фактор": p["factor"],
-                    "Pearson": p["pearson"],
-                    "Spearman": p["spearman"],
-                    "лучший лаг": p["best_lag"],
-                    "Pearson на лаге": p["best_lag_pearson"],
-                    "n": p["n"],
+                    "Фактор": label_or_raw(OPTIONAL_FACTOR_LABELS, p["factor"]),
+                    "Код в данных": p["factor"],
+                    "Вместе линейно": p["pearson"],
+                    "Вместе по порядку": p["spearman"],
+                    "Сдвиг назад, периодов": p["best_lag"],
+                    "Связь со сдвигом": p["best_lag_pearson"],
+                    "Точек учтено": p["n"],
                 }
                 for p in corr.pairs
             ],
             use_container_width=True,
         )
     else:
-        st.caption("Числовых факторов недостаточно для корреляций")
+        st.caption("Числовых факторов недостаточно, чтобы оценить связь с продажами")
 
     if report.category_contribution:
         st.subheader("Вклад категорий")

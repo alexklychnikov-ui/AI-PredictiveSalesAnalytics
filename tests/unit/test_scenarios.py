@@ -77,6 +77,7 @@ def test_profit_unavailable_without_margin() -> None:
     status = profit_data_status(_frame(60))
     assert status["available"] is False
     assert "hint" in status
+    assert "прибыл" in status["hint"].lower() or "марж" in status["hint"].lower()
 
 
 def test_factor_effect_blocked_when_noise_only() -> None:

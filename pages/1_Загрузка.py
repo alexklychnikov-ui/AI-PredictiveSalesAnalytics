@@ -12,6 +12,7 @@ from src.data.pipeline import preview_from_bytes, preview_ingest, to_dataset_cre
 from src.db.repositories import DatasetRepository
 from src.db.session import session_scope
 from src.ui.feedback import error_state, page_guard
+from src.ui.help_texts import FACTOR_HELP, METRIC_HELP, PAGE_INTROS, show_glossary
 from src.ui.labels import AGG_LABELS, FREQ_LABELS, KPI_LABELS, OPTIONAL_FACTOR_LABELS
 
 SAMPLE_PATH = Path("sample_data/synthetic_sales.csv")
@@ -23,7 +24,12 @@ AGG_OPTIONS = list(AGG_LABELS.keys())
 def _load_source() -> tuple[object, object] | tuple[None, None]:
     settings = get_settings()
     st.subheader("1. Источник")
-    source = st.radio("Откуда взять данные", ["Загрузить файл", "Синтетический пример"], horizontal=True)
+    source = st.radio(
+        "Откуда взять данные",
+        ["Загрузить файл", "Синтетический пример"],
+        horizontal=True,
+        help="Учебный пример — готовая таблица без персональных данных, чтобы сразу пройти весь путь.",
+    )
     if source == "Синтетический пример":
         if not SAMPLE_PATH.exists():
             st.error("Файл sample_data/synthetic_sales.csv не найден")
@@ -52,7 +58,8 @@ def _load_source() -> tuple[object, object] | tuple[None, None]:
 @page_guard
 def main() -> None:
     st.title("Загрузка данных")
-    st.caption("Сопоставление колонок → проверка качества → сохранение в PostgreSQL")
+    st.caption(PAGE_INTROS["upload"])
+    show_glossary(st)
 
     loaded_mapping = _load_source()
     if loaded_mapping[0] is None:
@@ -65,13 +72,23 @@ def main() -> None:
     st.write(f"Колонки: {list(loaded.frame.columns)}")
 
     st.subheader("3. Сопоставление и параметры")
+    st.caption(
+        "Укажите, какая колонка — дата, какая — главный показатель продаж, "
+        "и при желании дополнительные поля (скидка, реклама…)."
+    )
     cols = list(loaded.frame.columns)
     c1, c2 = st.columns(2)
-    date_column = c1.selectbox("Колонка даты", cols, index=cols.index(suggested.date_column))
+    date_column = c1.selectbox(
+        "Колонка даты",
+        cols,
+        index=cols.index(suggested.date_column),
+        help="Когда была продажа / день учёта.",
+    )
     target_column = c2.selectbox(
         "Колонка показателя",
         cols,
         index=cols.index(suggested.target_column) if suggested.target_column in cols else 0,
+        help="Что прогнозируем: обычно выручка или количество.",
     )
 
     optional_values = {}
@@ -81,6 +98,7 @@ def main() -> None:
         options=opt_keys,
         default=opt_keys,
         format_func=lambda key: OPTIONAL_FACTOR_LABELS.get(key, key),
+        help="Необязательные поля, которые потом можно крутить в сценариях.",
     )
     for logical in opt_cols:
         default_col = suggested.optional_columns.get(logical, cols[0])
@@ -89,6 +107,7 @@ def main() -> None:
             cols,
             index=cols.index(default_col) if default_col in cols else 0,
             key=f"opt_{logical}",
+            help=FACTOR_HELP.get(logical, "Сопоставьте с колонкой в файле."),
         )
 
     c3, c4, c5, c6 = st.columns(4)
@@ -96,21 +115,36 @@ def main() -> None:
         "Частота",
         FREQ_OPTIONS,
         format_func=lambda x: FREQ_LABELS[x],
+        help=METRIC_HELP["frequency"],
     )
     agg = c4.selectbox(
         "Агрегация показателя",
         AGG_OPTIONS,
         index=0,
         format_func=lambda x: AGG_LABELS[x],
+        help="Как свернуть несколько строк в один день/неделю: обычно сумма.",
     )
     target_kpi = c5.selectbox(
         "Смысл показателя",
         KPI_OPTIONS,
         index=0,
         format_func=lambda x: KPI_LABELS[x],
+        help="Подпись для отчётов: выручка, штуки, заказы…",
     )
-    horizon = int(c6.number_input("Желаемый горизонт, периодов", min_value=1, max_value=365, value=30))
-    fill_missing = st.checkbox("Заполнять пропуски календаря нулями", value=False)
+    horizon = int(
+        c6.number_input(
+            "Желаемый горизонт, периодов",
+            min_value=1,
+            max_value=365,
+            value=30,
+            help=METRIC_HELP["horizon"],
+        )
+    )
+    fill_missing = st.checkbox(
+        "Заполнять пропуски календаря нулями",
+        value=False,
+        help="Если в какие-то дни продаж не было — подставить 0, чтобы ряд был ровным.",
+    )
     dataset_name = st.text_input("Имя набора", value=Path(loaded.source_name).stem)
 
     mapping = ColumnMapping(

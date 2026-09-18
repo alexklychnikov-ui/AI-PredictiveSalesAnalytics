@@ -35,7 +35,11 @@ def _safe_corr(a: pd.Series, b: pd.Series, method: str) -> float | None:
 
 
 def compute_correlations(frame: pd.DataFrame, driver_cols: list[str], *, max_lag: int = 7) -> CorrelationSummary:
-    disclaimer = "Корреляция не доказывает причинность. Лаги считаются только по прошлым значениям фактора."
+    disclaimer = (
+        "«Вместе двигались» ≠ «этот фактор вызвал продажи». "
+        "Сдвиг по времени смотрим только назад (фактор раньше → продажи позже), "
+        "без подглядывания в будущее."
+    )
     pairs: list[dict] = []
     if frame.empty or not driver_cols:
         return CorrelationSummary(pairs=pairs, disclaimer=disclaimer)

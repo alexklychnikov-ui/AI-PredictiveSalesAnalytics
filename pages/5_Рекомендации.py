@@ -17,30 +17,29 @@ from src.recommendations.openai_client import openai_available
 from src.recommendations.service import run_insight_job
 from src.schemas import ForecastPointCreate, ForecastRunCreate
 from src.ui.feedback import empty_state, page_guard
+from src.ui.help_texts import METRIC_HELP, PAGE_INTROS, show_glossary
 from src.ui.labels import FREQ_LABELS, label_or_raw
 from src.ui.session_store import serialize_insight_job
 
 SOURCE_LABELS = {
-    "rules": "правила",
+    "rules": "правила (шаблоны)",
     "openai": "OpenAI",
-    "openai_fallback_rules": "OpenAI → fallback на правила",
-    "cache": "кэш",
+    "openai_fallback_rules": "OpenAI не подошёл → шаблоны",
+    "cache": "из кэша",
 }
 
 
 @page_guard
 def main() -> None:
     st.title("Рекомендации")
-    st.caption(
-        "Сначала факты и rule-based шаблоны; OpenAI только переформулирует агрегаты. "
-        "Без ключа продукт работает полностью."
-    )
+    st.caption(PAGE_INTROS["recommendations"])
+    show_glossary(st)
 
     settings = get_settings()
     if openai_available():
         st.success(f"OpenAI доступен · модель {settings.openai_model}")
     else:
-        st.info("OPENAI_API_KEY не задан — будут только rule-based рекомендации")
+        st.info("Ключ OpenAI не задан — будут понятные шаблонные советы без нейросети")
 
     with session_scope() as session:
         summaries = DatasetRepository(session).list_summaries()
@@ -63,11 +62,31 @@ def main() -> None:
         return
 
     c1, c2, c3 = st.columns(3)
-    series_key = c1.selectbox("Ряд", series_keys or ["total"], index=0)
-    horizon = int(c2.number_input("Горизонт фактов", min_value=1, max_value=90, value=14))
-    use_openai = c3.checkbox("Использовать OpenAI", value=openai_available())
-    force_refresh = st.checkbox("Игнорировать кэш", value=False)
-
+    series_key = c1.selectbox(
+        "Ряд",
+        series_keys or ["total"],
+        index=0,
+        help=METRIC_HELP["series_key"],
+    )
+    horizon = int(
+        c2.number_input(
+            "Горизонт для фактов",
+            min_value=1,
+            max_value=90,
+            value=14,
+            help=METRIC_HELP["horizon"],
+        )
+    )
+    use_openai = c3.checkbox(
+        "Подключить OpenAI",
+        value=openai_available(),
+        help="Нейросеть только переформулирует уже посчитанные цифры, не выдумывает новые.",
+    )
+    force_refresh = st.checkbox(
+        "Пересчитать заново (не брать из кэша)",
+        value=False,
+        help="Кэш экономит время, если те же данные уже считали.",
+    )
     filtered = apply_filters(frame, series_key=series_key)
     st.caption(
         f"Частота: {label_or_raw(FREQ_LABELS, dataset.frequency)} · точек: {len(filtered)}"

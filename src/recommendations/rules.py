@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.recommendations.schemas import RecommendationItem, RecommendationsReport
+from src.ui.help_texts import PROFIT_HINT_MISSING
 
 
 def build_rule_recommendations(facts: dict[str, Any]) -> RecommendationsReport:
@@ -144,14 +145,17 @@ def build_rule_recommendations(facts: dict[str, Any]) -> RecommendationsReport:
 
     profit = scenarios.get("profit_status") or {}
     if not profit.get("available"):
-        caveats.append(profit.get("hint") or "Profit/ROI недоступен без margin/cost")
+        caveats.append(profit.get("hint") or PROFIT_HINT_MISSING)
     else:
         items.append(
             RecommendationItem(
                 title="Считать прибыль, не только выручку",
-                action="При сценариях бюджета сверять Δ прибыли и ROI, а не только yhat",
+                action=(
+                    "При сценариях с рекламой или ценой смотрите изменение прибыли и окупаемости, "
+                    "а не только рост прогноза продаж"
+                ),
                 evidence=f"Режим прибыли: {profit.get('mode')}; полей: {profit.get('fields')}",
-                expected_effect="Отсечение сценариев с ростом выручки без маржи",
+                expected_effect="Не выбрать сценарий, где продажи растут, а деньги после затрат — нет",
                 confidence="средняя",
                 limitation="Маржа усреднена по истории; структура затрат может меняться",
                 applicable_period="сценарии с изменением spend/цены",
@@ -164,14 +168,16 @@ def build_rule_recommendations(facts: dict[str, Any]) -> RecommendationsReport:
         items.append(
             RecommendationItem(
                 title="Заложить стресс-сценарий",
-                action="Проверить устойчивость плана при пессимистичном % stress-test",
-                evidence=(
-                    f"Пессимистичный stress: сумма={stress.get('сумма')}; "
-                    f"Δ%={stress.get('Δ %')}"
+                action=(
+                    "Проверьте план на «плохом» варианте: продажи на несколько процентов ниже базового прогноза"
                 ),
-                expected_effect="Понимание чувствительности плана к отклонению прогноза",
+                evidence=(
+                    f"Пессимистичный сдвиг: сумма={stress.get('сумма')}; "
+                    f"изменение %={stress.get('Δ %')}"
+                ),
+                expected_effect="Понять, насколько план чувствителен к более слабому сценарию",
                 confidence="средняя",
-                limitation="Stress-test не моделирует причинный шок фактора",
+                limitation="Это простой сдвиг прогноза, а не модель конкретной причины падения",
                 applicable_period=f"горизонт {forecast.get('horizon')}",
             )
         )

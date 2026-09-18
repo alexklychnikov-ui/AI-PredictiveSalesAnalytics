@@ -7,11 +7,15 @@ from typing import Any
 
 import pandas as pd
 
+from src.ui.help_texts import PROFIT_HINT_MISSING, PROFIT_HINT_NEED_PRICE
+from src.ui.labels import OPTIONAL_FACTOR_LABELS, label_or_raw
+
 KNOWN_FACTORS = (
     "unit_price",
     "discount_pct",
     "promo_flag",
     "marketing_spend",
+    "stockout_flag",
 )
 
 PROFIT_FIELDS = ("margin_pct", "unit_cost", "cost", "gross_margin")
@@ -69,7 +73,10 @@ def assess_factor(frame: pd.DataFrame, factor: str) -> FactorEligibility:
             can_optimize_levels=False,
             confidence="низкая",
             reasons=["Фактор отсутствует в данных"],
-            missing_hint=f"Начните собирать колонку «{factor}»",
+            missing_hint=(
+                f"В таблице нет колонки «{label_or_raw(OPTIONAL_FACTOR_LABELS, factor)}» "
+                f"(техническое имя: {factor}). Добавьте её, если хотите крутить этот сценарий."
+            ),
         )
 
     series = pd.to_numeric(frame[factor], errors="coerce")
@@ -146,14 +153,14 @@ def profit_data_status(frame: pd.DataFrame) -> dict[str, Any]:
             "mode": None,
             "fields": [cost_col],
             "missing": ["unit_price"],
-            "hint": "Для прибыли нужны unit_cost/cost и unit_price",
+            "hint": PROFIT_HINT_NEED_PRICE,
         }
     return {
         "available": False,
         "mode": None,
         "fields": [],
         "missing": list(PROFIT_FIELDS),
-        "hint": "Для profit/ROI начните собирать margin_pct или unit_cost+unit_price",
+        "hint": PROFIT_HINT_MISSING,
     }
 
 

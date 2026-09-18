@@ -15,6 +15,7 @@ from src.forecasting.service import run_forecast_job
 from src.schemas import ForecastPointCreate, ForecastRunCreate
 from src.ui.charts import forecast_figure
 from src.ui.feedback import empty_state, error_state, page_guard
+from src.ui.help_texts import METRIC_HELP, PAGE_INTROS, show_glossary
 from src.ui.labels import FREQ_LABELS, MODEL_LABELS, QUALITY_LABELS, label_or_raw
 from src.ui.session_store import serialize_forecast_job
 
@@ -28,8 +29,8 @@ def _fmt_metric(value: float | None, suffix: str = "") -> str:
 @page_guard
 def main() -> None:
     st.title("Прогноз")
-    st.caption("Prophet и сезонный naive с rolling backtesting; OpenAI не используется")
-
+    st.caption(PAGE_INTROS["forecast"])
+    show_glossary(st)
     with session_scope() as session:
         summaries = DatasetRepository(session).list_summaries()
 
@@ -51,22 +52,37 @@ def main() -> None:
         return
 
     c1, c2, c3 = st.columns(3)
-    series_key = c1.selectbox("Ряд", series_keys or ["total"], index=0)
+    series_key = c1.selectbox(
+        "Ряд",
+        series_keys or ["total"],
+        index=0,
+        help=METRIC_HELP["series_key"],
+    )
     default_horizon = 30 if dataset.frequency.upper().startswith("D") else 12
-    horizon = int(c2.number_input("Горизонт", min_value=1, max_value=365, value=default_horizon, step=1))
+    horizon = int(
+        c2.number_input(
+            "Горизонт",
+            min_value=1,
+            max_value=365,
+            value=default_horizon,
+            step=1,
+            help=METRIC_HELP["horizon"],
+        )
+    )
     model_choice = c3.selectbox(
         "Модель",
         options=["auto", "prophet", "seasonal_naive"],
         format_func=lambda x: label_or_raw(MODEL_LABELS, x),
+        help="Авто — выбрать ту, что меньше ошибалась на проверке прошлого.",
     )
 
     target_wape_raw = st.number_input(
-        "Целевой WAPE, % (опционально)",
+        "Целевая ошибка WAPE, % (необязательно)",
         min_value=0.0,
         max_value=100.0,
         value=0.0,
         step=1.0,
-        help="0 = не задавать порог",
+        help=METRIC_HELP["wape"] + " 0 = не задавать порог.",
     )
     target_wape = None if target_wape_raw <= 0 else float(target_wape_raw)
 

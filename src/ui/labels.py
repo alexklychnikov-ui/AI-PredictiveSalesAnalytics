@@ -58,23 +58,23 @@ AGG_LABELS = {
 }
 
 OPTIONAL_FACTOR_LABELS = {
-    "discount_pct": "скидка, %",
-    "promo_flag": "акция (флаг)",
-    "marketing_spend": "рекламный бюджет",
-    "unit_price": "цена",
-    "stockout_flag": "дефицит (флаг)",
-    "category": "категория",
-    "product_id": "товар",
-    "channel": "канал",
-    "region": "регион",
-    "store": "магазин",
+    "discount_pct": "Скидка, %",
+    "promo_flag": "Акция (есть / нет)",
+    "marketing_spend": "Рекламный бюджет",
+    "unit_price": "Цена за штуку",
+    "stockout_flag": "Дефицит товара (есть / нет)",
+    "category": "Категория",
+    "product_id": "Товар",
+    "channel": "Канал",
+    "region": "Регион",
+    "store": "Магазин",
 }
 
 SCENARIO_TYPE_LABELS = {
-    "base": "базовый",
-    "stress_optimistic": "оптимистичный stress",
-    "stress_pessimistic": "пессимистичный stress",
-    "stress_custom": "пользовательский stress",
+    "base": "базовый (как модель)",
+    "stress_optimistic": "оптимистичный (+%)",
+    "stress_pessimistic": "пессимистичный (−%)",
+    "stress_custom": "свой сдвиг, %",
 }
 
 CONFIDENCE_LABELS = {

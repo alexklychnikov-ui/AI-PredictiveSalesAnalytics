@@ -16,6 +16,7 @@ from src.scenarios.service import run_scenario_job
 from src.schemas import ForecastPointCreate, ForecastRunCreate
 from src.ui.charts import scenarios_compare_figure
 from src.ui.feedback import empty_state, error_state, page_guard, warn_list
+from src.ui.help_texts import METRIC_HELP, PAGE_INTROS, factor_help, show_factor_guide, show_glossary
 from src.ui.labels import FREQ_LABELS, OPTIONAL_FACTOR_LABELS, label_or_raw
 from src.ui.session_store import serialize_scenario_job
 
@@ -23,10 +24,8 @@ from src.ui.session_store import serialize_scenario_job
 @page_guard
 def main() -> None:
     st.title("Сценарии")
-    st.caption(
-        "Stress-test в процентах и факторные what-if только при прохождении eligibility. "
-        "OpenAI не используется."
-    )
+    st.caption(PAGE_INTROS["scenarios"])
+    show_glossary(st)
 
     with session_scope() as session:
         summaries = DatasetRepository(session).list_summaries()
@@ -49,50 +48,76 @@ def main() -> None:
         return
 
     c1, c2 = st.columns(2)
-    series_key = c1.selectbox("Ряд", series_keys or ["total"], index=0)
+    series_key = c1.selectbox(
+        "Ряд",
+        series_keys or ["total"],
+        index=0,
+        help=METRIC_HELP["series_key"],
+    )
     default_horizon = 14 if dataset.frequency.upper().startswith("D") else 8
-    horizon = int(c2.number_input("Горизонт", min_value=1, max_value=365, value=default_horizon))
+    horizon = int(
+        c2.number_input(
+            "Горизонт",
+            min_value=1,
+            max_value=365,
+            value=default_horizon,
+            help=METRIC_HELP["horizon"],
+        )
+    )
 
     filtered = apply_filters(frame, series_key=series_key)
     st.caption(
         f"Частота: {label_or_raw(FREQ_LABELS, dataset.frequency)} · точек: {len(filtered)}"
     )
 
-    st.subheader("Stress-test, %")
+    st.subheader("Простой сдвиг прогноза, %")
+    st.caption(METRIC_HELP["stress"])
     s1, s2, s3 = st.columns(3)
-    opt_pct = float(s1.number_input("Оптимистичный, %", value=10.0, step=1.0))
-    pes_pct = float(s2.number_input("Пессимистичный, %", value=-10.0, step=1.0))
-    custom_pct = float(s3.number_input("Пользовательский, %", value=5.0, step=1.0))
+    opt_pct = float(s1.number_input("Оптимистичный, %", value=10.0, step=1.0, help="Например +10% ко всему прогнозу"))
+    pes_pct = float(s2.number_input("Пессимистичный, %", value=-10.0, step=1.0, help="Например −10% ко всему прогнозу"))
+    custom_pct = float(s3.number_input("Свой вариант, %", value=5.0, step=1.0, help="Любой свой процент сдвига"))
 
     eligibility = assess_all_factors(filtered)
-    st.subheader("Доступность факторов")
+    st.subheader("Какие факторы можно крутить")
+    st.caption(METRIC_HELP["eligibility"])
     elig_rows = []
     for e in eligibility:
         elig_rows.append(
             {
                 "фактор": label_or_raw(OPTIONAL_FACTOR_LABELS, e.factor),
-                "код": e.factor,
+                "код в данных": e.factor,
                 "доступен": "да" if e.eligible else "нет",
-                "n": e.n_non_null,
-                "уник.": e.n_unique,
+                "заполнено точек": e.n_non_null,
+                "разных значений": e.n_unique,
                 "уверенность": e.confidence,
-                "причины": "; ".join(e.reasons) if e.reasons else "",
+                "что это": factor_help(e.factor).split(".")[0] + ".",
+                "почему": "; ".join(e.reasons) if e.reasons else "достаточно истории",
             }
         )
     if elig_rows:
         st.dataframe(elig_rows, use_container_width=True)
+        show_factor_guide(st, codes=[e.factor for e in eligibility])
     else:
-        st.caption("Числовых факторов в наборе нет")
+        st.caption("В наборе нет дополнительных числовых факторов (скидка, реклама и т.п.)")
+        show_factor_guide(st)
 
     profit_status = profit_data_status(filtered)
     if not profit_status.get("available"):
-        st.info(profit_status.get("hint") or "Profit/ROI недоступен без margin/cost")
+        st.info(profit_status.get("hint") or METRIC_HELP["profit"])
+    else:
+        st.success(
+            "Прибыль и окупаемость доступны: в данных есть маржа или себестоимость с ценой."
+        )
 
     eligible = [e for e in eligibility if e.eligible]
     factor_values: dict[str, float] = {}
     if eligible:
-        st.subheader("Факторные сценарии")
-        st.caption("Управление только для факторов, прошедших eligibility")
+        st.subheader("Что если изменить фактор")
+        st.caption(
+            "Двигайте ползунок и нажмите «Рассчитать». "
+            "Старт = последнее значение из истории (сценарий «как сейчас»). "
+            "Текст под ползунком объясняет фактор; «?» — то же кратко."
+        )
         for e in eligible:
             label = label_or_raw(OPTIONAL_FACTOR_LABELS, e.factor)
             hist_vals = pd.to_numeric(filtered[e.factor], errors="coerce").dropna()
@@ -103,21 +128,24 @@ def main() -> None:
             hi = e.max_value if e.max_value is not None else default + 1
             span = max(hi - lo, 1.0)
             value = st.slider(
-                f"{label} ({e.factor})",
+                label,
                 min_value=float(lo - 0.2 * span),
                 max_value=float(hi + 0.2 * span),
                 value=float(default),
                 key=f"factor_{e.factor}",
-                help="По умолчанию — последнее историческое значение (без изменения эффекта)",
+                help=factor_help(e.factor),
             )
             factor_values[e.factor] = float(value)
+            st.caption(factor_help(e.factor))
             if e.factor == "discount_pct" and not e.can_optimize_levels:
-                st.caption("Оптимизация уровней скидки ограничена: мало уникальных значений")
+                st.caption(
+                    "Скидка в истории почти не менялась — тонкий подбор «лучшей скидки» ограничен."
+                )
     else:
-        st.caption("Нет факторов, доступных для управления")
+        st.caption("Нет факторов, которыми можно управлять на этих данных")
 
     if st.button("Рассчитать сценарии", type="primary"):
-        with st.spinner("Базовый прогноз и сценарии…"):
+        with st.spinner("Считаем базовый прогноз и варианты…"):
             job = run_scenario_job(
                 filtered,
                 frequency=dataset.frequency,
@@ -162,26 +190,34 @@ def main() -> None:
             "points": [{"ds": p["ds"], "yhat": p["yhat"]} for p in payload["base_points"]],
         }
     ]
-    for s in payload.get("stress") or []:
+    stress_list = payload.get("stress") or []
+    if stress_list:
+        st.caption(
+            stress_list[0].get("disclaimer")
+            or "Простой сдвиг прогноза на ±% — не оценка причинности фактора."
+        )
+    for s in stress_list:
         chart_series.append(
             {
                 "name": s["name"],
                 "points": [{"ds": p["ds"], "yhat": p["yhat"]} for p in s.get("points") or []],
             }
         )
-        st.caption(s.get("disclaimer") or "")
     for f in payload.get("factors") or []:
         if not f.get("allowed"):
             continue
+        label = label_or_raw(OPTIONAL_FACTOR_LABELS, f["factor"])
         chart_series.append(
             {
-                "name": f"{f['factor']}={f['scenario_value']:g}",
+                "name": f"{label}={f['scenario_value']:g}",
                 "points": [{"ds": p["ds"], "yhat": p["yhat"]} for p in f.get("points") or []],
             }
         )
         st.caption(
-            f"{f.get('disclaimer')} · коэф.={f.get('effect_per_unit'):.4g} · "
-            f"MAE с/без: {f.get('mae_with'):.3f}/{f.get('mae_without'):.3f}"
+            f"{label}: оценка «что если» по истории "
+            f"(на 1 единицу фактора ≈ {f.get('effect_per_unit'):.4g}; "
+            f"ошибка с фактором / без: {f.get('mae_with'):.3f} / {f.get('mae_without'):.3f}). "
+            "Связь в прошлом ≠ доказанная причина."
         )
 
     st.plotly_chart(scenarios_compare_figure(chart_series), use_container_width=True)
@@ -194,15 +230,17 @@ def main() -> None:
 
     profit = payload.get("profit")
     if profit is not None:
-        st.subheader("Profit / ROI")
+        st.subheader("Прибыль и окупаемость")
+        st.caption(METRIC_HELP["profit"])
         if profit.get("available"):
             p1, p2, p3, p4 = st.columns(4)
-            p1.metric("Прибыль база", f"{profit['base_profit']:,.2f}")
-            p2.metric("Прибыль сценарий", f"{profit['scenario_profit']:,.2f}")
-            p3.metric("Δ прибыль", f"{profit['delta_profit']:,.2f}")
+            p1.metric("Прибыль (база)", f"{profit['base_profit']:,.2f}")
+            p2.metric("Прибыль (сценарий)", f"{profit['scenario_profit']:,.2f}")
+            p3.metric("Разница прибыли", f"{profit['delta_profit']:,.2f}")
             p4.metric(
-                "ROI %",
+                "Окупаемость (ROI), %",
                 "—" if profit.get("roi_pct") is None else f"{profit['roi_pct']:.1f}",
+                help="Насколько доп. затраты окупились приростом прибыли",
             )
         else:
             st.info(profit.get("hint") or "Недостаточно данных для прибыли")

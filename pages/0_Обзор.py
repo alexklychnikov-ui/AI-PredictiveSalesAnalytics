@@ -8,6 +8,7 @@ from src.config import get_settings
 from src.db.repositories import DatasetRepository
 from src.db.session import check_db, session_scope
 from src.ui.feedback import empty_state, error_state, page_guard, show_user_path
+from src.ui.help_texts import PAGE_INTROS, show_glossary
 from src.ui.labels import ENV_LABELS, FREQ_LABELS, STATUS_LABELS, label_or_raw
 
 
@@ -16,11 +17,8 @@ def main() -> None:
     settings = get_settings()
 
     st.title("Предиктивная аналитика продаж")
-    st.caption(
-        "Полный путь: Загрузка → Аналитика → Прогноз → Сценарии → Рекомендации. "
-        "Код менять не нужно."
-    )
-
+    st.caption(PAGE_INTROS["overview"])
+    show_glossary(st)
     col1, col2, col3 = st.columns(3)
     col1.metric("Окружение", label_or_raw(ENV_LABELS, settings.app_env))
     col2.metric("Домен", settings.app_domain)
