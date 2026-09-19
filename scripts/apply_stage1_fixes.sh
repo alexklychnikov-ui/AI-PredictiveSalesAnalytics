@@ -37,6 +37,19 @@ PY
 echo "--- caddy env keys ---"
 docker compose exec -T caddy env | cut -d= -f1 | sort
 echo "--- auth ---"
-curl -sI https://salesanalytics.alexklyvibe.ru | head -5
-curl -sI -u 'admin:[REDACTED]' https://salesanalytics.alexklyvibe.ru | head -8
+set -a
+# shellcheck disable=SC1091
+source .env
+set +a
+AUTH_USER="${BASIC_AUTH_USER:-admin}"
+AUTH_PASS="${BASIC_AUTH_PASSWORD:-}"
+if [[ -z "$AUTH_PASS" && -f /tmp/basic_auth_password ]]; then
+  AUTH_PASS=$(tr -d '\r\n' </tmp/basic_auth_password)
+fi
+curl -sI "https://${APP_DOMAIN}" | head -5
+if [[ -n "$AUTH_PASS" ]]; then
+  curl -sI -u "${AUTH_USER}:${AUTH_PASS}" "https://${APP_DOMAIN}" | head -8
+else
+  echo "BASIC_AUTH_PASSWORD not set — skip authenticated probe"
+fi
 bash scripts/setup_backup_cron.sh

@@ -5,6 +5,8 @@
 !env.example
 .stage1_secrets*
 planToDo.md
+_rotate_basic_auth.tmp
+*_auth_password*
 
 # Python
 .venv/

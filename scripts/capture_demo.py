@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import time
@@ -9,9 +10,13 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
-BASE = "https://salesanalytics.alexklyvibe.ru"
-USER = "admin"
-PASSWORD = "[REDACTED]"
+BASE = os.environ.get("DEMO_BASE_URL", "https://salesanalytics.alexklyvibe.ru").rstrip("/")
+USER = os.environ.get("BASIC_AUTH_USER", "admin")
+PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
+if not PASSWORD:
+    raise SystemExit(
+        "Задайте BASIC_AUTH_PASSWORD в окружении (не храните пароль в репозитории)."
+    )
 
 ROOT = Path(__file__).resolve().parents[1]
 SHOTS = ROOT / "docs" / "screenshots"
