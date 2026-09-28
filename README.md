@@ -13,6 +13,7 @@ UI на русском. OpenAI опционален: без ключа прод�
 |---|---|
 | Техническое задание (DOCX) | [docs/TZ_AI_prediktivnaya_analitika_prodazh.docx](docs/TZ_AI_prediktivnaya_analitika_prodazh.docx) |
 | Видео основного сценария (MP4) | [docs/demo/demo_osnovnoj_scenarij.mp4](docs/demo/demo_osnovnoj_scenarij.mp4) |
+| Презентационное видео (MP4) | [docs/demo/ai-sistema-prediktivnoy-analitiki-prodazh.mp4](docs/demo/ai-sistema-prediktivnoy-analitiki-prodazh.mp4) |
 | Скриншоты (части + full-page) | [docs/screenshots/](docs/screenshots/) |
 
 ### Скриншоты по страницам
