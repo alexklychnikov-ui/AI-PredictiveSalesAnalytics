@@ -28,7 +28,7 @@ UI на русском. OpenAI опционален: без ключа прод�
 | Рекомендации | [06_rekomendacii_full.png](docs/screenshots/06_rekomendacii_full.png) | [06…](docs/screenshots/06_rekomendacii_01.png) |
 
 <p align="center">
-  <img src="docs/screenshots/01_obzor_full.png" alt="Обзор" width="720" />
+  <img src="docs/mockups/nodex-ai-predictive-sales-analytics-20260918-193800-1280x720.png" alt="Макет дашборда" width="720" />
 </p>
 
 ---
